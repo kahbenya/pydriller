@@ -93,6 +93,7 @@ class Modification:  # pylint: disable=R0902
         self.diff = diff_and_sc['diff']
         self.source_code = diff_and_sc['source_code']
         self.source_code_before = diff_and_sc['source_code_before']
+        self.source_code_raw = diff_and_sc['source_code_raw']
 
         self._nloc = None
         self._complexity = None
@@ -407,7 +408,8 @@ class Commit:
                 'source_code_before': self._get_decoded_sc_str(
                     diff.a_blob),
                 'source_code': self._get_decoded_sc_str(
-                    diff.b_blob)
+                    diff.b_blob),
+                'source_code_raw': self._get_raw_sc(diff.b_blob)
             }
 
             modifications_list.append(Modification(old_path, new_path,
@@ -426,6 +428,14 @@ class Commit:
     def _get_decoded_sc_str(self, diff):
         try:
             return diff.data_stream.read().decode('utf-8', 'ignore')
+        except (UnicodeDecodeError, AttributeError, ValueError):
+            logger.debug('Could not load source code of a '
+                         'file in commit %s', self._c_object.hexsha)
+            return None
+
+    def _get_raw_sc(self, diff):
+        try:
+            return diff.data_stream.read()
         except (UnicodeDecodeError, AttributeError, ValueError):
             logger.debug('Could not load source code of a '
                          'file in commit %s', self._c_object.hexsha)
